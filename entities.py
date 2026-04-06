@@ -4,7 +4,7 @@ class Crab:
     def __init__(self, x, y, health=None, sight=None):
         self.x = x
         self.y = y
-        self.is_alive = True
+        
 
         #For starting crabs that don't inherit health parameter
         #Roll for random starting health
@@ -19,25 +19,28 @@ class Crab:
             sight_options = [0,1,2,3,4,5,6,7,8]
             sight_weights = [1.5,4,10,17,35,17,10,4,1.5]
             self.sight = random.choices(sight_options, weights=sight_weights, k=1)[0]
+        else: 
+            self.sight = sight
         self.mating_cooldown = 30
         self.wants_to_mate = False
 
 
     def move(self, grid_size, foods, crabs):
         target = None
-        
+        closest_dist = self.sight + 1
+
         if self.wants_to_mate:#set target to other crabs 
-            closest_dist = self.sight + 1
             for other in crabs:
                 if other == self: continue
                 dist = abs(other.x - self.x) + abs(other.y - self.y)
                 if dist < closest_dist:
                     closest_dist = dist
-                    target =(other.x, other.y)
+                    target = other
 
+        if target == None:
+            closest_dist = self.sight + 1
         for food in foods:
             #Calculate distance to nearest food
-            closest_dist = self.sight + 1
             dist = abs(food.x - self.x) + abs(food.y - self.y)
 
             if dist <= self.sight and dist<closest_dist:
@@ -64,10 +67,6 @@ class Crab:
         self.x = max(0, min(self.x, grid_size - 1))
         self.y = max(0, min(self.y, grid_size - 1))
 
-        #Crabs lose health when moving
-        self.health -= 1
-        if self.health <= 0:
-            self.is_alive = False
     
     def reproduce(self, partner):
         #Inherit sight from parents
@@ -92,6 +91,8 @@ class Crab:
         partner.health -= 5
         self.mating_cooldown = 30
         partner.mating_cooldown = 30
+        self.wants_to_mate = False
+        partner.wants_to_mate = False
         
 
         return baby

@@ -3,6 +3,8 @@ import sys
 from entities import *
 import random
 
+crabs =[]
+foods = []
 # ---Configuration___
 SCREEN_SIZE = 900
 GRID_SIZE = 20
@@ -11,8 +13,8 @@ CELL_SIZE = SCREEN_SIZE // GRID_SIZE
 #Colors(R, G, B)
 COLOR_BG = (30, 30, 30)
 COLOR_GRID = (50, 50, 50)
-COLOR_CRAB =(255, 100, 100)
 COLOR_FOOD =(100, 255, 100)
+
 
 def main():
 
@@ -27,13 +29,11 @@ def main():
     screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
     pygame.display.set_caption("Life Sim")
     clock = pygame.time.Clock()
-    crabs = []
     for i in range (10):
-        #Spawn five crabs at random locations to start
+        #Spawn crabs at random locations to start
         start_x = random.randint(0, GRID_SIZE - 1)
         start_y = random.randint(0, GRID_SIZE - 1)
         crabs.append(Crab(start_x, start_y))
-    foods = []
     while len(foods) < 15:
         f_x = random.randint(0, GRID_SIZE - 1)
         f_y = random.randint(0, GRID_SIZE - 1)
@@ -59,14 +59,15 @@ def main():
                 foods.append(Food(new_x, new_y))
 
         for i, crab in enumerate (crabs[:]):
-            if crab.is_alive == False:
+            crab.health -= 1
+            if crab.health <= 0:
                 crabs.remove(crab)
             if crab.health > 8 and crab.mating_cooldown == 0:
                 crab.wants_to_mate = True
             crab.move(GRID_SIZE, foods, crabs)
             for food in foods[:]:
                 if crab.x == food.x and crab.y == food.y:
-                    crab.health += 8
+                    crab.health += 6
                     foods.remove(food)
             for partner in crabs[i+1:]:
                 if crab.x == partner.x and crab.y == partner.y and crab.health >= 5 and partner.health >= 5:
@@ -89,9 +90,13 @@ def main():
             pygame.draw.rect(screen, COLOR_FOOD, rect)
 
         for crab in crabs:
+            #Dynamic crab color based on health
+            health_factor = max(0, min(20, crab.health))
+            tint = 200 - (health_factor * 10)
+            dynamic_color = (255, tint, tint)
             #Multiply grid position by CELL_SIZE to get pixel position
             rect = (crab.x * CELL_SIZE, crab.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(screen, COLOR_CRAB, rect)
+            pygame.draw.rect(screen, dynamic_color, rect)
 
         #Draw the grid lines
         for x in range(0, SCREEN_SIZE, CELL_SIZE):

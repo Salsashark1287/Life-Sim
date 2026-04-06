@@ -4,16 +4,17 @@ class Crab:
     def __init__(self, x, y, health=None, sight=None):
         self.x = x
         self.y = y
-        
-
+        self.is_newborn = True
         #For starting crabs that don't inherit health parameter
         #Roll for random starting health
         if health is None:
-            health_options = [16, 17, 18, 19, 20, 21, 22, 23]
+            health_options = [10, 11, 12, 13, 14, 15, 16, 17]
             health_weights = [4.5, 8, 12.5, 25, 25, 12.5, 8, 4.5]
             self.health = random.choices(health_options, weights=health_weights, k=1)[0]
+            self.max_health = self.health
         else:
             self.health = health
+            self.max_health = health
         #Doing the same for sight
         if sight is None:
             sight_options = [0,1,2,3,4,5,6,7,8]
@@ -23,6 +24,7 @@ class Crab:
             self.sight = sight
         self.mating_cooldown = 30
         self.wants_to_mate = False
+    
 
 
     def move(self, grid_size, foods, crabs):
@@ -72,7 +74,7 @@ class Crab:
         #Inherit sight from parents
         low_s = min(self.sight, partner.sight)
         high_s = max(self.sight, partner.sight)
-        baby_sight = random.randint(low_s, high_s)
+        baby_sight = random.randint((low_s * 3) // 4, (high_s * 5) // 4)
         if random.random() < 0.1: # 10% chance to mutate sight
             baby_sight += random.choice([-1, 1])
             baby_sight = max(1, baby_sight) #No blind babies
@@ -102,7 +104,7 @@ class Food:
     def __init__(self, x, y):
         self.x = x 
         self.y = y 
-        self.fresh = random.randint(4, 8)
+        self.fresh = random.randint(8, 12)
         self.is_rotten = False
 
     def update(self):

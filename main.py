@@ -32,7 +32,26 @@ def main():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont('Arial', 24)
     header_font = pygame.font.SysFont('Arial', 32, bold=True)
-    
+
+
+
+    def reset():
+        crabs.clear()
+        foods.clear()
+        for i in range (10):
+            #Spawn crabs at random locations to start
+            start_x = random.randint(0, GRID_SIZE - 1)
+            start_y = random.randint(0, GRID_SIZE - 1)
+            new_crab = Crab(start_x, start_y,)
+            new_crab.is_newborn = False
+            crabs.append(new_crab)
+
+        while len(foods) < 25:
+            f_x = random.randint(0, GRID_SIZE - 1)
+            f_y = random.randint(0, GRID_SIZE - 1)
+            if is_location_valid(f_x, f_y, foods):
+                foods.append(Food(f_x, f_y))
+
     def draw_text(text, x, y, current_font = font):
         img = current_font.render(text, True, COLOR_TEXT)
         screen.blit(img, (x,y))
@@ -44,19 +63,8 @@ def main():
                 neighbor_count += 1
         return neighbor_count <= 2
 
-    for i in range (10):
-        #Spawn crabs at random locations to start
-        start_x = random.randint(0, GRID_SIZE - 1)
-        start_y = random.randint(0, GRID_SIZE - 1)
-        new_crab = Crab(start_x, start_y,)
-        new_crab.is_newborn = False
-        crabs.append(new_crab)
-
-    while len(foods) < 25:
-        f_x = random.randint(0, GRID_SIZE - 1)
-        f_y = random.randint(0, GRID_SIZE - 1)
-        if is_location_valid(f_x, f_y, foods):
-            foods.append(Food(f_x, f_y))
+    reset()
+    is_paused = False #pause flag
     running = True
 
 
@@ -67,44 +75,53 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    is_paused = not is_paused #Toggle
+                if event.key == pygame.K_r:
+                    reset()
+                    is_paused = False
+                
 
         #2. Update 
-        for i in range(1 + len(foods)//8):
-            new_x = random.randint(0, GRID_SIZE - 1)
-            new_y = random.randint(0, GRID_SIZE - 1)
+        if not is_paused:
+            for i in range(1 + len(foods)//4):
+                new_x = random.randint(0, GRID_SIZE - 1)
+                new_y = random.randint(0, GRID_SIZE - 1)
 
-            if is_location_valid(new_x, new_y, foods):
-                foods.append(Food(new_x, new_y))
-
-        for i, crab in enumerate (crabs[:]):
-            crab.health -= 1
-            if crab.health <= 0:
-                crabs.remove(crab)
-            if crab.health > 8 and crab.mating_cooldown == 0:
-                crab.wants_to_mate = True
-            crab.move(GRID_SIZE, foods, crabs)
-            for food in foods[:]:
-                if crab.x == food.x and crab.y == food.y:
-                    if crab.health + 6 < crab.max_health:
-                        crab.health += 6
-                    else:
-                        crab.health = crab.max_health
+                if is_location_valid(new_x, new_y, foods):
+                    foods.append(Food(new_x, new_y))
+            if len(crabs) == 0:
+                is_paused = True
+            for i, crab in enumerate (crabs[:]):
+                crab.health -= 1
+                if crab.health <= 0:
+                    crabs.remove(crab)
+                if crab.health > 8 and crab.mating_cooldown == 0:
+                    crab.wants_to_mate = True
+                crab.move(GRID_SIZE, foods, crabs)
+                for food in foods[:]:
+                    if crab.x == food.x and crab.y == food.y:
+                        if crab.health + 6 < crab.max_health:
+                            crab.health += 6
+                        else:
+                            crab.health = crab.max_health
+                        foods.remove(food)
+                for partner in crabs[i+1:]:
+                    if crab.x == partner.x and crab.y == partner.y and crab.health >= 5 and partner.health >= 5:
+                        if crab.mating_cooldown == 0 and partner.mating_cooldown == 0:
+                            baby = crab.reproduce(partner)
+                            crabs.append(baby)
+                if crab.mating_cooldown > 0:
+                    crab.mating_cooldown -= 1 
+                if crab.is_newborn == True and crab.mating_cooldown <= 0:
+                    crab.is_newborn = False
+                crab.health -= 1
+            for food in foods:
+                food.update()
+                if food.is_rotten == True:
                     foods.remove(food)
-            for partner in crabs[i+1:]:
-                if crab.x == partner.x and crab.y == partner.y and crab.health >= 5 and partner.health >= 5:
-                    if crab.mating_cooldown == 0 and partner.mating_cooldown == 0:
-                        baby = crab.reproduce(partner)
-                        crabs.append(baby)
-            if crab.mating_cooldown > 0:
-                crab.mating_cooldown -= 1 
-            if crab.is_newborn == True and crab.mating_cooldown <= 0:
-                crab.is_newborn = False
-            crab.health -= 1
-        for food in foods:
-            food.update()
-            if food.is_rotten == True:
-                foods.remove(food)
-            
+                
 
         #3. Draw
         screen.fill(COLOR_BG)
@@ -148,6 +165,12 @@ def main():
         for y in range(0, FIELD_SIZE, CELL_SIZE):
             pygame.draw.line(screen, COLOR_GRID, (0,y), (FIELD_SIZE, y))
 
+        status_text = "PAUSED" if is_paused else "RUNNING"
+        status_color = (255, 100, 100) if is_paused else (100, 255, 100)
+        status_img = font.render(f"Status : {status_text}", True, status_color)
+        screen.blit(status_img, (FIELD_SIZE + 20, 750))
+
+
         draw_text("Ecosystem Stats", FIELD_SIZE + 20, 20, header_font)
         draw_text(f"Total Crabs: {total_crabs_count}", FIELD_SIZE + 20, 80)
         draw_text(f"Adults: {adult_count}", FIELD_SIZE + 20, 120)
@@ -156,7 +179,7 @@ def main():
         draw_text(f"Avg Max Health: {avg_max_health:}", FIELD_SIZE + 20, 240)
         draw_text(f"Avg Speed: {avg_speed:}", FIELD_SIZE + 20, 280)
         draw_text(f"Food Count: {len(foods)}", FIELD_SIZE + 20, 320)
-        
+        draw_text(f"Pause : Space | R : Reset", FIELD_SIZE + 20, 800)
         pygame.display.flip()
         clock.tick(5) #Sets fps
     pygame.quit()

@@ -104,8 +104,6 @@ class Crab:
 
         baby = Crab(self.x, self.y, health=baby_health, sight=baby_sight, speed=baby_sp)
 
-        self.health -= 3
-        partner.health -= 3
         self.mating_cooldown = 30
         partner.mating_cooldown = 30
         self.wants_to_mate = False

@@ -52,7 +52,7 @@ def main():
         new_crab.is_newborn = False
         crabs.append(new_crab)
 
-    while len(foods) < 15:
+    while len(foods) < 25:
         f_x = random.randint(0, GRID_SIZE - 1)
         f_y = random.randint(0, GRID_SIZE - 1)
         if is_location_valid(f_x, f_y, foods):
@@ -69,7 +69,7 @@ def main():
                 running = False
 
         #2. Update 
-        for i in range(1 + len(foods)//5):
+        for i in range(1 + len(foods)//8):
             new_x = random.randint(0, GRID_SIZE - 1)
             new_y = random.randint(0, GRID_SIZE - 1)
 
@@ -85,7 +85,10 @@ def main():
             crab.move(GRID_SIZE, foods, crabs)
             for food in foods[:]:
                 if crab.x == food.x and crab.y == food.y:
-                    crab.health += 6
+                    if crab.health + 6 < crab.max_health:
+                        crab.health += 6
+                    else:
+                        crab.health = crab.max_health
                     foods.remove(food)
             for partner in crabs[i+1:]:
                 if crab.x == partner.x and crab.y == partner.y and crab.health >= 5 and partner.health >= 5:
@@ -116,6 +119,7 @@ def main():
         if total_crabs_count > 0:
             avg_sight = sum(c.sight for c in crabs) // total_crabs_count
             avg_max_health = sum(c.max_health for c in crabs) // total_crabs_count
+            avg_speed =sum(c.speed for c in crabs)// total_crabs_count
 
         for food in foods:
             rect = (food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
@@ -146,11 +150,12 @@ def main():
 
         draw_text("Ecosystem Stats", FIELD_SIZE + 20, 20, header_font)
         draw_text(f"Total Crabs: {total_crabs_count}", FIELD_SIZE + 20, 80)
-        draw_text(f"Adults: {adult_count}", FIELD_SIZE + 40, 120)
-        draw_text(f"Newborns: {newborn_count}", FIELD_SIZE + 40, 155)
+        draw_text(f"Adults: {adult_count}", FIELD_SIZE + 20, 120)
+        draw_text(f"Newborns: {newborn_count}", FIELD_SIZE + 20, 155)
         draw_text(f"Avg Sight: {avg_sight:}", FIELD_SIZE + 20, 200)
         draw_text(f"Avg Max Health: {avg_max_health:}", FIELD_SIZE + 20, 240)
-        draw_text(f"Food Count: {len(foods)}", FIELD_SIZE + 20, 280)
+        draw_text(f"Avg Speed: {avg_speed:}", FIELD_SIZE + 20, 280)
+        draw_text(f"Food Count: {len(foods)}", FIELD_SIZE + 20, 320)
         
         pygame.display.flip()
         clock.tick(5) #Sets fps

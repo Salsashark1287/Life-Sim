@@ -1,0 +1,1 @@
+Welcome to Life Sim, the crab-based genetic simulator. It runs in pygame, and will simulate a colony of "crabs" as they eat food, make baby crabs, and avoid the incoming tide. The average of their inheritable traits are listed in an information window, and any crab can be selected by clicking on it to reveal it's indiviual attrributes. 

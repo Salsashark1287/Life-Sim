@@ -48,9 +48,10 @@ class Crab:
         target = None
         closest_dist = self.sight + self.speed
 
-        if self.wants_to_mate:#set target to other crabs 
+        if self.wants_to_mate and self.health > (self.max_health * .8):#set target to other crabs 
+            closest_dist = self.sight + self.speed
             for other in crabs:
-                if other == self: continue
+                if other == self or not other.wants_to_mate: continue
                 dist = abs(other.x - self.x) + abs(other.y - self.y)
                 if dist < closest_dist:
                     closest_dist = dist
@@ -102,8 +103,8 @@ class Crab:
             baby_sight = max(1, baby_sight) #No blind babies
 
         #Inherit health
-        low_h = min(self.health, partner.health)
-        high_h = max(self.health, partner.health)
+        low_h = min(self.max_health, partner.max_health)
+        high_h = max(self.max_health, partner.max_health)
         baby_health = random.randint(low_h, high_h)
         if random.random() <= .25:
             baby_health += random.choice([-1,1])
@@ -140,10 +141,5 @@ class Food:
     def __init__(self, x, y):
         self.x = x 
         self.y = y 
-        self.fresh = random.randint(15, 20)
-        self.is_rotten = False
 
-    def update(self):
-        self.fresh -= 1
-        if self.fresh <= 0:
-            self.is_rotten = True
+

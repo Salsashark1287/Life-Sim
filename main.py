@@ -66,6 +66,9 @@ def main():
     reset()
     is_paused = False #pause flag
     selected_crab = None #tracks which crab has been clicked on 
+    wave_y = -1#Current row wave is on (-1 = no wave)
+    wave_timer = 0#Controls speed of wave
+    WAVE_SPEED= 2 #How many ticks before wave advances 1 row
     running = True
 
 
@@ -107,12 +110,31 @@ def main():
 
         #2. Update 
         if not is_paused:
-            for i in range(1 + len(foods)//4):
+            #Food spawns
+            for i in range(5 + len(foods)//4):
                 new_x = random.randint(0, GRID_SIZE - 1)
                 new_y = random.randint(0, GRID_SIZE - 1)
-
-                if is_location_valid(new_x, new_y, foods):
+                 if is_location_valid(new_x, new_y, foods):
                     foods.append(Food(new_x, new_y))
+
+            #Waves come in and take crabs out to sea
+            if wave_y == -1 and random.random() < 0.01:
+                wave_y = GRID_SIZE - 1 #wave starts at bottom of grid
+                wave_timer = 0
+            if wave_y != -1:
+                wave_timer += 1
+                if wave_timer >= WAVE_SPEED:
+                    for crab in crabs[:]:
+                        if crab.y == wave_y:
+                            if selected_crab == crab:
+                                selected_crab = None
+                            crabs.remove(crab)
+                    wave_y -= 1 #move wave up 1 row
+                    wave_timer = 0
+                    if wave_y < GRID_SIZE // 2:
+                        wave_y = -1
+
+            #Crabs move toward food, or other crabs to mate
             if len(crabs) == 0:
                 is_paused = True
             for i, crab in enumerate (crabs[:]):
@@ -121,7 +143,7 @@ def main():
                 if crab.health <= 0 or crab.age >= crab.lifespan:
                     crabs.remove(crab)
                     continue
-                if crab.health > 15 and crab.mating_cooldown == 0:
+                if crab.health > (crab.max_health * .5) and crab.mating_cooldown == 0:
                     crab.wants_to_mate = True
                 crab.move(GRID_SIZE, foods, crabs)
                 for food in foods[:]:
@@ -141,14 +163,17 @@ def main():
                 if crab.is_newborn == True and crab.mating_cooldown <= 0:
                     crab.is_newborn = False
                 
-            for food in foods:
-                food.update()
-                if food.is_rotten == True:
-                    foods.remove(food)
-                
 
         #3. Draw
         screen.fill(COLOR_BG)
+        if wave_y != -1:
+            water_height = (GRID_SIZE - wave_y) * CELL_SIZE #Calculate the pixel height of the water
+            water_rect = pygame.Rect(0, wave_y* CELL_SIZE, FIELD_SIZE, water_height)
+            surf = pygame.Surface((FIELD_SIZE, water_height), pygame.SRCALPHA) #Create semi-transparent water
+            surf.fill((0, 105, 148, 150))#Blue with 150 Alpha
+            screen.blit(surf, (0, wave_y * CELL_SIZE))
+            pygame.draw.line(screen, (255, 255, 255), (0, wave_y * CELL_SIZE), (FIELD_SIZE, wave_y * CELL_SIZE), 3)
+
         ui_rect = pygame.Rect(FIELD_SIZE, 0, UI_WIDTH, SCREEN_HEIGHT)
         pygame.draw.rect(screen, (30, 30, 35), ui_rect)#DRAW INFORMATION WINDOW
         header_bg_height = 60

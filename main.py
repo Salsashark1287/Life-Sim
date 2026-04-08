@@ -65,6 +65,7 @@ def main():
 
     reset()
     is_paused = False #pause flag
+    selected_crab = None #tracks which crab has been clicked on 
     running = True
 
 
@@ -81,6 +82,27 @@ def main():
                 if event.key == pygame.K_r:
                     reset()
                     is_paused = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1: #left click
+                    mouse_x, mouse_y = event.pos
+
+                    #Check if the click is inside FIELD_SIZE
+                    if mouse_x < FIELD_SIZE:
+                        #Convert pixels to grid coords
+                        grid_x = mouse_x // CELL_SIZE
+                        grid_y = mouse_y // CELL_SIZE
+
+                        #Check if crab is at that location
+                        found_selection = False
+                        for crab in crabs:
+                            if crab.x == grid_x and crab.y == grid_y:
+                                selected_crab = crab
+                                found_selection = True
+                                break
+
+                        #if no crab at coords, deselect
+                        if not found_selection:
+                            selected_crab =  None
                 
 
         #2. Update 
@@ -95,15 +117,17 @@ def main():
                 is_paused = True
             for i, crab in enumerate (crabs[:]):
                 crab.health -= 1
-                if crab.health <= 0:
+                crab.age += 1
+                if crab.health <= 0 or crab.age >= crab.lifespan:
                     crabs.remove(crab)
-                if crab.health > 8 and crab.mating_cooldown == 0:
+                    continue
+                if crab.health > 15 and crab.mating_cooldown == 0:
                     crab.wants_to_mate = True
                 crab.move(GRID_SIZE, foods, crabs)
                 for food in foods[:]:
                     if crab.x == food.x and crab.y == food.y:
-                        if crab.health + 6 < crab.max_health:
-                            crab.health += 6
+                        if crab.health + 12 < crab.max_health:
+                            crab.health += 12
                         else:
                             crab.health = crab.max_health
                         foods.remove(food)
@@ -116,7 +140,7 @@ def main():
                     crab.mating_cooldown -= 1 
                 if crab.is_newborn == True and crab.mating_cooldown <= 0:
                     crab.is_newborn = False
-                crab.health -= 1
+                
             for food in foods:
                 food.update()
                 if food.is_rotten == True:
@@ -126,7 +150,11 @@ def main():
         #3. Draw
         screen.fill(COLOR_BG)
         ui_rect = pygame.Rect(FIELD_SIZE, 0, UI_WIDTH, SCREEN_HEIGHT)
-        pygame.draw.rect(screen, COLOR_UI_BG, ui_rect)#DRAW INFORMATION WINDOW
+        pygame.draw.rect(screen, (30, 30, 35), ui_rect)#DRAW INFORMATION WINDOW
+        header_bg_height = 60
+        header_bg_rect = pygame.Rect(FIELD_SIZE, 0, UI_WIDTH, header_bg_height)
+        pygame.draw.rect(screen, (60, 60, 70), header_bg_rect)
+        pygame.draw.line(screen, (0,0,0), (FIELD_SIZE, header_bg_height), (FIELD_SIZE + UI_WIDTH, header_bg_height), 2)
         pygame.draw.line(screen, (0,0,0), (FIELD_SIZE, 0), (FIELD_SIZE, SCREEN_HEIGHT), 3) #DRAW BORDER
         total_crabs_count = len(crabs)
         newborn_count = len([c for c in crabs if c.is_newborn])
@@ -165,12 +193,13 @@ def main():
         for y in range(0, FIELD_SIZE, CELL_SIZE):
             pygame.draw.line(screen, COLOR_GRID, (0,y), (FIELD_SIZE, y))
 
+        #Draw Paused/Running Status
         status_text = "PAUSED" if is_paused else "RUNNING"
         status_color = (255, 100, 100) if is_paused else (100, 255, 100)
         status_img = font.render(f"Status : {status_text}", True, status_color)
         screen.blit(status_img, (FIELD_SIZE + 20, 750))
 
-
+        #Draw information box
         draw_text("Ecosystem Stats", FIELD_SIZE + 20, 20, header_font)
         draw_text(f"Total Crabs: {total_crabs_count}", FIELD_SIZE + 20, 80)
         draw_text(f"Adults: {adult_count}", FIELD_SIZE + 20, 120)
@@ -180,6 +209,17 @@ def main():
         draw_text(f"Avg Speed: {avg_speed:}", FIELD_SIZE + 20, 280)
         draw_text(f"Food Count: {len(foods)}", FIELD_SIZE + 20, 320)
         draw_text(f"Pause : Space | R : Reset", FIELD_SIZE + 20, 800)
+        
+        if selected_crab and selected_crab in crabs: #Makes sure selcted crab is still alive
+            current_y = 400
+            draw_text(f"Health: {selected_crab.health}/{selected_crab.max_health}", FIELD_SIZE + 40, current_y)
+            draw_text(f"Lifespan: {selected_crab.age}/{selected_crab.lifespan}", FIELD_SIZE + 40, current_y + 35)
+            draw_text(f"Sight: {selected_crab.sight}", FIELD_SIZE + 40, current_y + 70)
+            draw_text(f"Speed: {selected_crab.speed}", FIELD_SIZE + 40, current_y +105)
+        elif selected_crab:
+            #if selected crab is dead
+            selected_crab = None
+
         pygame.display.flip()
         clock.tick(5) #Sets fps
     pygame.quit()

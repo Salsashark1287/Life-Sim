@@ -41,14 +41,14 @@ def main():
         for i in range (10):
             #Spawn crabs at random locations to start
             start_x = random.randint(0, GRID_SIZE - 1)
-            start_y = random.randint(0, GRID_SIZE - 1)
+            start_y = random.randint(0, GRID_SIZE - 2)
             new_crab = Crab(start_x, start_y,)
             new_crab.is_newborn = False
             crabs.append(new_crab)
 
         while len(foods) < 25:
             f_x = random.randint(0, GRID_SIZE - 1)
-            f_y = random.randint(0, GRID_SIZE - 1)
+            f_y = random.randint(0, GRID_SIZE - 2)
             if is_location_valid(f_x, f_y, foods):
                 foods.append(Food(f_x, f_y))
 
@@ -68,7 +68,8 @@ def main():
     selected_crab = None #tracks which crab has been clicked on 
     wave_y = -1#Current row wave is on (-1 = no wave)
     wave_timer = 0#Controls speed of wave
-    WAVE_SPEED= 2 #How many ticks before wave advances 1 row
+    WAVE_SPEED= 1 #How many ticks before wave advances 1 row
+    wave_direction = 1 #Keeps track of if wave is coming in (1) or going out(-1)
     running = True
 
 
@@ -113,25 +114,28 @@ def main():
             #Food spawns
             for i in range(5 + len(foods)//4):
                 new_x = random.randint(0, GRID_SIZE - 1)
-                new_y = random.randint(0, GRID_SIZE - 1)
-                 if is_location_valid(new_x, new_y, foods):
+                new_y = random.randint(0, GRID_SIZE - 2)
+                if is_location_valid(new_x, new_y, foods):
                     foods.append(Food(new_x, new_y))
 
             #Waves come in and take crabs out to sea
-            if wave_y == -1 and random.random() < 0.01:
+            if wave_y == -1 and random.random() < 0.05:
                 wave_y = GRID_SIZE - 1 #wave starts at bottom of grid
+                wave_direction = 1 #Tide comes in
                 wave_timer = 0
             if wave_y != -1:
                 wave_timer += 1
+                for crab in crabs[:]:
+                    if crab.y >= wave_y:
+                        if selected_crab == crab:
+                            selected_crab = None
+                        crabs.remove(crab)
                 if wave_timer >= WAVE_SPEED:
-                    for crab in crabs[:]:
-                        if crab.y == wave_y:
-                            if selected_crab == crab:
-                                selected_crab = None
-                            crabs.remove(crab)
-                    wave_y -= 1 #move wave up 1 row
+                    wave_y -= (wave_direction * 2) #move wave up 2 rows
                     wave_timer = 0
-                    if wave_y < GRID_SIZE // 2:
+                    if wave_y < GRID_SIZE // 2 and wave_direction == 1: #if water hits high tide line
+                        wave_direction = -1 #Tide goes out
+                    if wave_y >= GRID_SIZE:
                         wave_y = -1
 
             #Crabs move toward food, or other crabs to mate
@@ -145,7 +149,7 @@ def main():
                     continue
                 if crab.health > (crab.max_health * .5) and crab.mating_cooldown == 0:
                     crab.wants_to_mate = True
-                crab.move(GRID_SIZE, foods, crabs)
+                crab.move(GRID_SIZE, foods, crabs, wave_y)
                 for food in foods[:]:
                     if crab.x == food.x and crab.y == food.y:
                         if crab.health + 12 < crab.max_health:
@@ -166,14 +170,7 @@ def main():
 
         #3. Draw
         screen.fill(COLOR_BG)
-        if wave_y != -1:
-            water_height = (GRID_SIZE - wave_y) * CELL_SIZE #Calculate the pixel height of the water
-            water_rect = pygame.Rect(0, wave_y* CELL_SIZE, FIELD_SIZE, water_height)
-            surf = pygame.Surface((FIELD_SIZE, water_height), pygame.SRCALPHA) #Create semi-transparent water
-            surf.fill((0, 105, 148, 150))#Blue with 150 Alpha
-            screen.blit(surf, (0, wave_y * CELL_SIZE))
-            pygame.draw.line(screen, (255, 255, 255), (0, wave_y * CELL_SIZE), (FIELD_SIZE, wave_y * CELL_SIZE), 3)
-
+        
         ui_rect = pygame.Rect(FIELD_SIZE, 0, UI_WIDTH, SCREEN_HEIGHT)
         pygame.draw.rect(screen, (30, 30, 35), ui_rect)#DRAW INFORMATION WINDOW
         header_bg_height = 60
@@ -181,6 +178,8 @@ def main():
         pygame.draw.rect(screen, (60, 60, 70), header_bg_rect)
         pygame.draw.line(screen, (0,0,0), (FIELD_SIZE, header_bg_height), (FIELD_SIZE + UI_WIDTH, header_bg_height), 2)
         pygame.draw.line(screen, (0,0,0), (FIELD_SIZE, 0), (FIELD_SIZE, SCREEN_HEIGHT), 3) #DRAW BORDER
+        ocean_rect = pygame.Rect(0, (GRID_SIZE - 1) * CELL_SIZE, FIELD_SIZE, CELL_SIZE)
+        pygame.draw.rect(screen, (0, 75, 150), ocean_rect)
         total_crabs_count = len(crabs)
         newborn_count = len([c for c in crabs if c.is_newborn])
         adult_count = total_crabs_count - newborn_count
@@ -212,11 +211,12 @@ def main():
             pygame.draw.ellipse(screen, dynamic_color, oval_rect)
             pygame.draw.ellipse(screen, "black", oval_rect, 2)
 
-        #Draw the grid lines
-        for x in range(0, FIELD_SIZE, CELL_SIZE):
-            pygame.draw.line(screen, COLOR_GRID, (x,0), (x, FIELD_SIZE))
-        for y in range(0, FIELD_SIZE, CELL_SIZE):
-            pygame.draw.line(screen, COLOR_GRID, (0,y), (FIELD_SIZE, y))
+        # Draw Wave
+        if wave_y != -1:
+            water_height = (GRID_SIZE - wave_y) * CELL_SIZE #Calculate the pixel height of the water
+            water_rect = pygame.Rect(0, wave_y* CELL_SIZE, FIELD_SIZE, water_height)
+            pygame.draw.rect(screen, (0, 75, 150), water_rect)
+            pygame.draw.line(screen, (255, 255, 255), (0, wave_y * CELL_SIZE), (FIELD_SIZE, wave_y * CELL_SIZE), 18)
 
         #Draw Paused/Running Status
         status_text = "PAUSED" if is_paused else "RUNNING"
@@ -244,6 +244,9 @@ def main():
         elif selected_crab:
             #if selected crab is dead
             selected_crab = None
+
+
+
 
         pygame.display.flip()
         clock.tick(5) #Sets fps

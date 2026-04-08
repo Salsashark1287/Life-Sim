@@ -44,9 +44,22 @@ class Crab:
     
 
 
-    def move(self, grid_size, foods, crabs):
+    def move(self, grid_size, foods, crabs, wave_y):
         target = None
         closest_dist = self.sight + self.speed
+
+        if wave_y != -1 :
+            #Distance to the wave is wave_y  - self.y
+            distance_to_wave = wave_y - self._y
+            if 0 < distance_to_wave <= self.sight:
+                for speed in range(self.speed):
+                    if self.y > 0:
+                        self.y -= 1
+                
+                self.x = max(0, min(self.x, grid_size - 1))
+                self.y = max(0, min(self.y, grid_size - 2))
+                return
+
 
         if self.wants_to_mate and self.health > (self.max_health * .8):#set target to other crabs 
             closest_dist = self.sight + self.speed
@@ -90,7 +103,7 @@ class Crab:
 
         #Keep them inside the boundaries
         self.x = max(0, min(self.x, grid_size - 1))
-        self.y = max(0, min(self.y, grid_size - 1))
+        self.y = max(0, min(self.y, grid_size - 2))
 
     
     def reproduce(self, partner):

@@ -57,11 +57,10 @@ def main():
         screen.blit(img, (x,y))
 
     def is_location_valid(x,y, existing_foods):
-        neighbor_count = 0
         for food in existing_foods:
-            if abs(food.x - x) <= 1 and abs(food.y - y) <= 1:
-                neighbor_count += 1
-        return neighbor_count <= 2
+            if food.x == x and food.y == y:
+                return False
+        return True
 
     reset()
     is_paused = False #pause flag
@@ -119,24 +118,36 @@ def main():
                     foods.append(Food(new_x, new_y))
 
             #Waves come in and take crabs out to sea
-            if wave_y == -1 and random.random() < 0.05:
+            # Tsunami
+            if wave_y == -1 and random.random() < 0.001: # 1/1000 chance:             
+                wave_y = GRID_SIZE - 1
+                wave_direction = 1
+                high_tide_mark = int(GRID_SIZE * .2) #Will cover 80% of field
+                is_tsunami = True
+            # Regular wave
+            elif wave_y == -1 and random.random() < 0.05:
                 wave_y = GRID_SIZE - 1 #wave starts at bottom of grid
                 wave_direction = 1 #Tide comes in
+                high_tide_mark = GRID_SIZE // 2
                 wave_timer = 0
+                is_tsunami = False
             if wave_y != -1:
                 wave_timer += 1
+                wave_move_speed = 3 if is_tsunami else 2
                 for crab in crabs[:]:
                     if crab.y >= wave_y:
                         if selected_crab == crab:
                             selected_crab = None
                         crabs.remove(crab)
                 if wave_timer >= WAVE_SPEED:
-                    wave_y -= (wave_direction * 2) #move wave up 2 rows
+                    wave_y -= (wave_direction * wave_move_speed) #move wave up 2 rows
                     wave_timer = 0
-                    if wave_y < GRID_SIZE // 2 and wave_direction == 1: #if water hits high tide line
+                    if wave_y < high_tide_mark and wave_direction == 1: #if water hits high tide line
                         wave_direction = -1 #Tide goes out
                     if wave_y >= GRID_SIZE:
                         wave_y = -1
+                        is_tsunami = False
+                
 
             #Crabs move toward food, or other crabs to mate
             if len(crabs) == 0:
@@ -152,11 +163,12 @@ def main():
                 crab.move(GRID_SIZE, foods, crabs, wave_y)
                 for food in foods[:]:
                     if crab.x == food.x and crab.y == food.y:
-                        if crab.health + 12 < crab.max_health:
-                            crab.health += 12
-                        else:
-                            crab.health = crab.max_health
-                        foods.remove(food)
+                        if crab.is_hungry: # Checks if crab wants to eat
+                            if crab.health + 12 < crab.max_health:
+                                crab.health += 12
+                            else:
+                                crab.health = crab.max_health
+                            foods.remove(food)
                 for partner in crabs[i+1:]:
                     if crab.x == partner.x and crab.y == partner.y and crab.health >= 5 and partner.health >= 5:
                         if crab.mating_cooldown == 0 and partner.mating_cooldown == 0:

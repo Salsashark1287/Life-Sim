@@ -36,13 +36,17 @@ class Crab:
             self.speed = speed
         
         if lifespan is None:
-            lifespan_options = [100, 110, 120, 130, 140, 150]
-            lifespan_weights = [20, 30, 20, 15, 10, 5]
+            lifespan_options = [400, 600, 800, 1000]
+            lifespan_weights = [25, 40, 25, 10]
             self.lifespan = random.choices(lifespan_options, weights=lifespan_weights, k=1)[0]
         else:
             self.lifespan = lifespan
-    
 
+        self.hunger_threshold = .8 #Crabs will get hungry under 80% of max_health
+
+    @property
+    def is_hungry(self):
+        return self.health < (self.max_health * self.hunger_threshold)
 
     def move(self, grid_size, foods, crabs, wave_y):
         target = None
@@ -50,7 +54,7 @@ class Crab:
 
         if wave_y != -1 :
             #Distance to the wave is wave_y  - self.y
-            distance_to_wave = wave_y - self._y
+            distance_to_wave = wave_y - self.y
             if 0 < distance_to_wave <= self.sight:
                 for speed in range(self.speed):
                     if self.y > 0:
@@ -69,8 +73,9 @@ class Crab:
                 if dist < closest_dist:
                     closest_dist = dist
                     target = other
+            pass
 
-        if target == None:
+        if target == None and self.is_hungry:
             closest_dist = self.sight + self.speed
         for food in foods:
             #Calculate distance to nearest food
